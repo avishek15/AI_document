@@ -4,6 +4,7 @@ from langchain.chains import LLMChain
 from dotenv import load_dotenv, find_dotenv
 from chroma_handler import process_query
 
+
 _ = load_dotenv(find_dotenv())
 
 llm_openai = ChatOpenAI(temperature=0, model_name='gpt-4-0613')
@@ -31,23 +32,11 @@ ajax_no_memory = PromptTemplate(template=template, input_variables=['question', 
 
 ajax_chain = LLMChain(llm=llm_openai, prompt=ajax_no_memory, verbose=True)
 
-
 # while True:
-#     query = input("Ask a question(q to quit): ")
-#     if query == 'q':
-#         print('AJ4X: Bye! Cheers!')
-#         break
-#
-#     context = process_query(query)
-#     contexts = [context['documents'][0][i] for i in range(len(context['documents'][0]))]
-#     answer = ajax_chain.apply([{'question': query,
-#                                 'query_context': ctx}
-#                                for ctx in contexts])
-#     print(f"AJ4X: {answer}\n\n")
+def chatbot(query):
+    if query == 'q':
+        return 'AJ4X: Bye! Cheers!'
 
-
-def chatbot_response(query, history=None):
-    # print(">>>>>>", type(query))
     context = process_query(query)
     contexts = [context['documents'][0][i] for i in range(len(context['documents'][0]))]
     answer = ajax_chain.apply([{'question': query,
@@ -58,4 +47,4 @@ def chatbot_response(query, history=None):
     next_context =' '.join([ans['text'] for ans in answer if ans['text']!="I don't Know"])
     refined_answer = ajax_chain.run(question=query, query_context=next_context)
 
-    print(f"Hey! It's Aj4X again : {refined_answer}")
+    return f"Hey! It's Aj4X again : {refined_answer}"

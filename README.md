@@ -9,9 +9,11 @@ Done:
 - [x] Basic Chatbot without memory
 - [x] Document Uploading interface
 - [x] Document storage into Chroma DB
+- [x] Connect bot with VectorDB
 
 To Do:
-- [ ] Connect bot with VectorDB
+- [ ] Context embeddings should return good quality matches
+- [ ] Force the bot to answer from context
 - [ ] Chatbot Memory
 - [ ] Turn into WebApp (Flask maybe?)
 

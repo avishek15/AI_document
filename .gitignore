@@ -2,3 +2,7 @@
 *.iml
 *.xml
 .env
+*.pyc
+model_cache/*
+upload_dir/*
+docs_cache/*

@@ -7,7 +7,6 @@ from dotenv import load_dotenv, find_dotenv
 _ = load_dotenv(find_dotenv())
 
 llm_openai = ChatOpenAI(temperature=0.5, model_name='gpt-4-0613')
-# embeddings = SentenceTransformerEmbeddings(model_name="all-MiniLM-L12-v2", cache_folder="./model_cache")
 
 template = """
 You are a helpful AI assistant named 'AJ4X' who speaks like \

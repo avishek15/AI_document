@@ -25,7 +25,7 @@ AJ4X:"""
 
 ajax_no_memory = PromptTemplate(template=template, input_variables=['question', 'query_context'])
 
-ajax_chain = LLMChain(llm=llm_openai, prompt=ajax_no_memory)
+ajax_chain = LLMChain(llm=llm_openai, prompt=ajax_no_memory, verbose=True)
 
 while True:
     query = input("Ask a question(q to quit): ")

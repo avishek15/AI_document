@@ -6,3 +6,4 @@
 model_cache/*
 upload_dir/*
 docs_cache/*
+AI_assistant_venv/*

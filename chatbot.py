@@ -1,7 +1,6 @@
 from langchain.chat_models import ChatOpenAI
 from langchain import PromptTemplate
 from langchain.chains import LLMChain
-from langchain.embeddings import SentenceTransformerEmbeddings
 from dotenv import load_dotenv, find_dotenv
 
 
@@ -29,7 +28,7 @@ ajax_chain = LLMChain(llm=llm_openai, prompt=ajax_no_memory)
 while True:
     query = input("Ask a question(q to quit): ")
     if query == 'q':
-        print('AJ4X: Bye Bye')
+        print('AJ4X: Bye! Cheers!')
         break
 
     answer = ajax_chain.run(query)

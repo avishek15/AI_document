@@ -7,10 +7,10 @@ I am utilising Langchain, SentenceTransformer and OpenAI API.
 
 Done:
 - [x] Basic Chatbot without memory
-
+- [x] Document Uploading interface
 To Do:
-- [ ] Document Uploading interface
 - [ ] Document storage into Chroma DB
+- [ ] Connect bot with VectorDB
 - [ ] Chatbot Memory
 - [ ] Turn into WebApp (Flask maybe?)
 

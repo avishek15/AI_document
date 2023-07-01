@@ -32,11 +32,10 @@ ajax_no_memory = PromptTemplate(template=template, input_variables=['question', 
 
 ajax_chain = LLMChain(llm=llm_openai, prompt=ajax_no_memory, verbose=True)
 
-while True:
-    query = input("Ask a question(q to quit): ")
+# while True:
+def chatbot(query):
     if query == 'q':
-        print('AJ4X: Bye! Cheers!')
-        break
+        return 'AJ4X: Bye! Cheers!'
 
     context = process_query(query)
     contexts = [context['documents'][0][i] for i in range(len(context['documents'][0]))]
@@ -48,4 +47,4 @@ while True:
     next_context =' '.join([ans['text'] for ans in answer if ans['text']!="I don't Know"])
     refined_answer = ajax_chain.run(question=query, query_context=next_context)
 
-    print(f"Hey! It's Aj4X again : {refined_answer}")
+    return f"Hey! It's Aj4X again : {refined_answer}"

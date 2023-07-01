@@ -6,7 +6,7 @@ from config import docs_cache, model_cache, collection_name, context_len, overla
 from langchain.embeddings import SentenceTransformerEmbeddings
 import pypdfium2 as pdfium
 
-embeddings = SentenceTransformerEmbeddings(model_name="paraphrase-MiniLM-L3-v2", cache_folder=model_cache)
+embeddings = SentenceTransformerEmbeddings(model_name="paraphrase-MiniLM-L6-v2", cache_folder=model_cache)
 
 chroma_client = chromadb.Client(Settings(
     chroma_db_impl="duckdb+parquet",

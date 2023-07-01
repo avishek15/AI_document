@@ -26,7 +26,7 @@ def process_pdf(pdf_path):
     metadata_collection = []
     ids_collection = []
     for idx, i in enumerate(range(0, len(full_text) - context_len, context_len - overlap)):
-        doc_collection.append(full_text[i: i + context_len])
+        doc_collection.append(' '.join(full_text[i: i+context_len].split(' ')[1:-1]))
         metadata_collection.append({'book': metadata, 'chunk': idx})
         ids_collection.append(str(id_offset + idx))
     i = i + (context_len - overlap)

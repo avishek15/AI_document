@@ -8,8 +8,9 @@ I am utilising Langchain, SentenceTransformer and OpenAI API.
 Done:
 - [x] Basic Chatbot without memory
 - [x] Document Uploading interface
+- [x] Document storage into Chroma DB
+
 To Do:
-- [ ] Document storage into Chroma DB
 - [ ] Connect bot with VectorDB
 - [ ] Chatbot Memory
 - [ ] Turn into WebApp (Flask maybe?)

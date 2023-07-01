@@ -46,3 +46,15 @@ def process_pdf(pdf_path):
                    ids=ids_collection)
     chroma_client.persist()
     return
+
+
+def process_query(query):
+    collection = chroma_client.get_collection(name=collection_name)
+    query_result = collection.query(query_texts=query,
+                                    n_results=3,
+                                    include=["metadatas",
+                                             "documents",
+                                             "distances"]
+                                    )
+
+    return query_result

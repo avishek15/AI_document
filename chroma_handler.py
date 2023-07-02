@@ -20,7 +20,8 @@ def process_pdf(pdf_path):
     for page_num in range(len(doc)):
         full_text += doc.get_page(page_num).get_textpage().get_text_range()
     doc.close()
-    collection = chroma_client.get_or_create_collection(name=collection_name)
+    collection = chroma_client.get_or_create_collection(name=collection_name,
+                                                        embedding_function=embeddings.embed_documents)
     id_offset = collection.count()
     doc_collection = []
     metadata_collection = []
@@ -49,12 +50,13 @@ def process_pdf(pdf_path):
 
 
 def process_query(query):
-    collection = chroma_client.get_collection(name=collection_name)
+    collection = chroma_client.get_collection(name=collection_name,
+                                              embedding_function=embeddings.embed_documents)
+    
     query_result = collection.query(query_texts=query,
                                     n_results=3,
                                     include=["metadatas",
                                              "documents",
                                              "distances"]
                                     )
-
     return query_result

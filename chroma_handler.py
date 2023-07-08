@@ -52,7 +52,7 @@ def process_pdf(pdf_path):
 def process_query(query):
     collection = chroma_client.get_collection(name=collection_name,
                                               embedding_function=embeddings.embed_documents)
-    
+
     query_result = collection.query(query_texts=query,
                                     n_results=3,
                                     include=["metadatas",

@@ -6,3 +6,7 @@
 model_cache/*
 upload_dir/*
 docs_cache/*
+.vscode/launch.json
+*.pyd
+*.h
+AI_assistant_venv/*

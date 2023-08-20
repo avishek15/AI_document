@@ -1,3 +1,5 @@
+# import time
+# time.clock = time.time
 import shutil
 import os
 from flask import *

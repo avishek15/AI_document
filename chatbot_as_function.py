@@ -39,12 +39,15 @@ def chatbot(query):
 
     context = process_query(query)
     contexts = [context['documents'][0][i] for i in range(len(context['documents'][0]))]
-    answer = ajax_chain.apply([{'question': query,
-                                'query_context': ctx}
-                               for ctx in contexts])
-    # print(f"AJ4X: {answer}\n\n")
+    
+    print('COntexts {}'.format(contexts))
+    refined_answer = ""
+    # answer = ajax_chain.apply([{'question': query,
+    #                             'query_context': ctx}
+    #                            for ctx in contexts])
+    # # print(f"AJ4X: {answer}\n\n")
 
-    next_context =' '.join([ans['text'] for ans in answer if ans['text']!="I don't Know"])
-    refined_answer = ajax_chain.run(question=query, query_context=next_context)
+    # next_context =' '.join([ans['text'] for ans in answer if ans['text']!="I don't Know"])
+    # refined_answer = ajax_chain.run(question=query, query_context=next_context)
 
     return f"Hey! It's Aj4X again : {refined_answer}"

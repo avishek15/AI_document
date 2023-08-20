@@ -6,7 +6,7 @@ from config import docs_cache, model_cache, collection_name, context_len, overla
 from langchain.embeddings import SentenceTransformerEmbeddings
 import pypdfium2 as pdfium
 
-embeddings = SentenceTransformerEmbeddings(model_name="paraphrase-MiniLM-L6-v2", cache_folder=model_cache)
+embeddings = SentenceTransformerEmbeddings(model_name="BAAI/bge-small-en", cache_folder=model_cache) #, normalize_embeddings=True)
 
 chroma_client = chromadb.Client(Settings(
     chroma_db_impl="duckdb+parquet",
@@ -35,7 +35,7 @@ def process_pdf(pdf_path):
     doc_collection.append(full_text[i:])
     metadata_collection.append({'book': metadata, 'chunk': idx + 1})
     ids_collection.append(str(id_offset + idx + 1))
-    random_ids_to_match = np.random.default_rng().choice(len(doc_collection), size=10, replace=False)
+    random_ids_to_match = np.random.default_rng().choice(len(doc_collection), size=min(10, len(doc_collection)), replace=False)
     if id_offset:
         matches = [collection.query(query_texts=doc_collection[random_id], n_results=1)['distances'][0] for random_id in
                    random_ids_to_match]

@@ -5,7 +5,7 @@ import os
 from flask import *
 from config import upload_dir
 from chroma_handler import process_pdf
-from chatbot_as_function import chatbot
+from chatbot_as_function import chatbot, conv_agent
 
 app = Flask(__name__)
 
@@ -33,7 +33,7 @@ def upload():
 def chat():
     if request.method == 'GET':
         query = request.args['question']
-        return chatbot(query=query)
+        return conv_agent(query=query)
 
 
 if __name__ == '__main__':

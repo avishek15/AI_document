@@ -5,8 +5,9 @@ from langchain.agents import Tool, AgentExecutor
 from langchain.chains.conversation.memory import ConversationSummaryMemory, ConversationBufferMemory
 from langchain.agents import initialize_agent, AgentType, ZeroShotAgent
 from dotenv import load_dotenv, find_dotenv
-from chroma_handler import process_query, get_top_page
+from chroma_handler import process_query, get_top_page, summarize_book
 from langchain.chains.summarize import load_summarize_chain
+from functools import partial
 
 _ = load_dotenv(find_dotenv())
 
@@ -67,7 +68,15 @@ top_page_tool = Tool(
     func=get_top_page,
     description="The database contains pages of the books in questions. "
                 "Use this function to retrieve any particular page of the books stored in the database."
-                "The argument to this function should be - book name: document query"
+                "Your search query must include a book name and a search term. The book name can be a "
+                "partial match. Use this format to query - book name: a search term"
+)
+
+summary_tool = Tool(
+    name='Book Summary',
+    func=partial(summarize_book, llm=llm_openai),
+    description="Use this tool to summarize any book present in the database. The argument to this function "
+                "should be a book name."
 )
 
 # summary_tool = Tool(
@@ -76,7 +85,7 @@ top_page_tool = Tool(
 #     description="Summarize the book mentioned in a paragraph. The reader should be able to grasp what happened in the book."
 # )
 
-all_tools = [top_page_tool]
+all_tools = [top_page_tool, summary_tool]
 # memory = ConversationSummaryMemory(llm=llm_openai, input_key="question")
 
 # simple_agent = initialize_agent(
@@ -102,6 +111,9 @@ prompt = ZeroShotAgent.create_prompt(
     suffix=suffix,
     input_variables=["input", "chat_history", "agent_scratchpad"],
 )
+
+# print(prompt)
+
 memory = ConversationBufferMemory(memory_key="chat_history")
 llm_chain = LLMChain(llm=llm_openai, prompt=prompt)
 agent = ZeroShotAgent(llm_chain=llm_chain, tools=all_tools, verbose=True)

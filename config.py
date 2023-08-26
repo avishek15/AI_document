@@ -5,3 +5,4 @@ collection_name = "docs"
 book_collection_name = "book_names"
 context_len = 2048
 overlap = 128
+clusters = 21

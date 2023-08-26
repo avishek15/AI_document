@@ -1,10 +1,16 @@
 import os
+import time
+
 import numpy as np
 import chromadb
 from chromadb.config import Settings
-from config import docs_cache, collection_name, context_len, overlap, book_collection_name
+from config import docs_cache, collection_name, context_len, overlap, book_collection_name, clusters
 from embeddings import bge_base_embeddings as embeddings
 import pypdfium2 as pdfium
+from langchain.prompts import PromptTemplate
+from langchain.chains.summarize import load_summarize_chain
+from langchain.schema import Document
+from sklearn.cluster import KMeans
 
 chroma_client = chromadb.Client(Settings(
     chroma_db_impl="duckdb+parquet",
@@ -50,6 +56,7 @@ def process_pdf(pdf_path):
                    metadatas=metadata_collection,
                    ids=ids_collection)
     book_collection.add(documents=[metadata],
+                        metadatas=[{'Total_pages': len(doc_collection)}],
                         ids=[str(book_collection.count())])
     chroma_client.persist()
     return
@@ -81,7 +88,7 @@ def get_top_page(query):
                                                        embedding_function=embeddings.embed_documents)
 
         book_search = book_collection.query(query_texts=book_name, n_results=1,
-                                               include=["documents"])
+                                            include=["documents"])
         potential_book = book_search["documents"][0][0]
         # if potential_book empty => handle
         # where_clause = {
@@ -120,8 +127,9 @@ def get_page_of_book(query):
                                                        embedding_function=embeddings.embed_documents)
 
         book_search = book_collection.query(query_texts=book_name, n_results=1,
-                                            include=["documents"])
+                                            include=["documents", "metadatas", "distances"])
         potential_book = book_search["documents"][0][0]
+
         where_clause = {
             "$and": [
                 {"book": {"$eq": potential_book}},
@@ -147,8 +155,75 @@ def get_page_of_book(query):
         print(e)
         return "Unknown Error!"
 
+
 def summarize_book(book_name, llm=None):
     if llm:
-        pass
+        book_collection = chroma_client.get_collection(name=book_collection_name,
+                                                       embedding_function=embeddings.embed_documents)
+
+        book_search = book_collection.query(query_texts=book_name, n_results=1,
+                                            include=["documents", "metadatas", "distances"])
+        potential_book = book_search["documents"][0][0]
+        total_pages = book_search["metadatas"][0][0]['Total_pages']
+        # tic = time.time()
+        # all_book_pages = []
+        # for i in range(total_pages):
+        #     all_book_pages.append(get_page_of_book(f"{potential_book}: {i}"))
+        # toc = time.time() - tic
+
+        collection = chroma_client.get_collection(name=collection_name,
+                                                  embedding_function=embeddings.embed_documents)
+        all_pages = collection.query(query_texts="", n_results=total_pages,
+                                     include=["documents", "embeddings", "metadatas"],
+                                     where={"book": potential_book})
+        all_docs = [page for page in all_pages['documents'][0]]
+        all_meta = [meta['chunk'] for meta in all_pages['metadatas'][0]]
+        all_embeddings = np.asarray(all_pages['embeddings'][0])
+        kmeans = KMeans(n_clusters=clusters, random_state=451).fit(all_embeddings)
+        # page_wise_classes = kmeans.labels_
+        cluster_centers = kmeans.cluster_centers_
+        most_relevant_pages = []
+        relevant_page_orders = []
+        for center in cluster_centers:
+            similarities = all_embeddings @ center
+            cluster_best_match = np.argmax(similarities)
+            most_relevant_pages.append(all_docs[cluster_best_match])
+            relevant_page_orders.append(all_meta[cluster_best_match])
+        sorted_documents = sorted(most_relevant_pages, key=lambda x: relevant_page_orders[most_relevant_pages.index(x)])
+        sorted_documents = [Document(page_content=doc) for doc in sorted_documents]
+        map_prompt = """
+        You will be given a single page of a book. This section will be enclosed in triple backticks (```)
+        Your goal is to give a summary of this section so that a reader will have a full understanding of what happened.
+        Your response should be at most three paragraphs and fully encompass what was said in the page.
+
+        ```{text}```
+        FULL SUMMARY:
+        """
+        map_prompt_template = PromptTemplate(template=map_prompt, input_variables=["text"])
+        map_chain = load_summarize_chain(llm=llm,
+                                         chain_type="stuff",
+                                         prompt=map_prompt_template,
+                                         verbose=True)
+        summaries = []
+        for sdoc in sorted_documents:
+            summary = map_chain.run([sdoc])
+            summaries.append(summary.strip())
+        summaries = "\n".join(summaries)
+        combine_prompt = """
+        You will be given a series of summaries from a book. The summaries will be enclosed in triple backticks (```)
+        Your goal is to give a verbose summary of what happened in the story.
+        The reader should be able to grasp what happened in the book.
+
+        ```{text}```
+        VERBOSE SUMMARY:
+        """
+        combine_prompt_template = PromptTemplate(template=combine_prompt, input_variables=["text"])
+        reduce_chain = load_summarize_chain(llm=llm,
+                                            chain_type="stuff",
+                                            prompt=combine_prompt_template,
+                                            verbose=True  # Set this to true if you want to see the inner workings
+                                            )
+        output = reduce_chain.run([Document(page_content=summaries)])
+        return output
     else:
         return "Summarization not possible. Unset LLM."

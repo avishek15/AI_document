@@ -4,7 +4,9 @@ import time
 import numpy as np
 import chromadb
 from chromadb.config import Settings
-from config import docs_cache, collection_name, context_len, overlap, book_collection_name, clusters
+from config import docs_cache, collection_name, context_len, overlap, \
+    book_collection_name, clusters, memory_cache, conversation_cache, \
+    summarized_history_collection, conversation_collection, memory_collection
 from embeddings import bge_base_embeddings as embeddings
 import pypdfium2 as pdfium
 from langchain.prompts import PromptTemplate
@@ -12,9 +14,17 @@ from langchain.chains.summarize import load_summarize_chain
 from langchain.schema import Document
 from sklearn.cluster import KMeans
 
-chroma_client = chromadb.Client(Settings(
+document_client = chromadb.Client(Settings(
     chroma_db_impl="duckdb+parquet",
     persist_directory=docs_cache
+))
+memory_client = chromadb.Client(Settings(
+    chroma_db_impl="duckdb+parquet",
+    persist_directory=memory_cache
+))
+conversation_client = chromadb.Client(Settings(
+    chroma_db_impl="duckdb+parquet",
+    persist_directory=conversation_cache
 ))
 
 
@@ -25,16 +35,17 @@ def process_pdf(pdf_path):
     for page_num in range(len(doc)):
         full_text += doc.get_page(page_num).get_textpage().get_text_range()
     doc.close()
-    collection = chroma_client.get_or_create_collection(name=collection_name,
-                                                        embedding_function=embeddings.embed_documents,
-                                                        metadata={"hnsw:space": "ip"})
-    book_collection = chroma_client.get_or_create_collection(name=book_collection_name,
-                                                             embedding_function=embeddings.embed_documents,
-                                                             metadata={"hnsw:space": "ip"})
+    collection = document_client.get_or_create_collection(name=collection_name,
+                                                          embedding_function=embeddings.embed_documents,
+                                                          metadata={"hnsw:space": "ip"})
+    book_collection = document_client.get_or_create_collection(name=book_collection_name,
+                                                               embedding_function=embeddings.embed_documents,
+                                                               metadata={"hnsw:space": "ip"})
     id_offset = collection.count()
     doc_collection = []
     metadata_collection = []
     ids_collection = []
+    i = idx = 0
     for idx, i in enumerate(range(0, len(full_text) - context_len, context_len - overlap)):
         doc_collection.append(' '.join(full_text[i: i + context_len].split(' ')[1:-1]))
         metadata_collection.append({'book': metadata, 'chunk': idx})
@@ -58,15 +69,62 @@ def process_pdf(pdf_path):
     book_collection.add(documents=[metadata],
                         metadatas=[{'Total_pages': len(doc_collection)}],
                         ids=[str(book_collection.count())])
-    chroma_client.persist()
+    document_client.persist()
+    return
+
+
+def put_conversation(conversation, summary):
+    conversations = conversation_client.get_or_create_collection(name=conversation_collection,
+                                                                 embedding_function=embeddings.embed_documents,
+                                                                 metadata={"hnsw:space": "ip"})
+    summaries = conversation_client.get_or_create_collection(name=summarized_history_collection,
+                                                             embedding_function=embeddings.embed_documents,
+                                                             metadata={"hnsw:space": "ip"})
+    conversations.add(documents=[conversation],
+                      metadatas=[{'id': conversations.count()}],
+                      ids=[str(conversations.count())])
+    summaries.add(documents=[summary],
+                  metadatas=[{'id': summaries.count()}],
+                  ids=[str(summaries.count())])
+    conversation_client.persist()
+    return
+
+
+def get_last_chat_summary():
+    try:
+        summaries = conversation_client.get_collection(name=summarized_history_collection,
+                                                       embedding_function=embeddings.embed_documents)
+        last_summary = summaries.query(query_texts="",
+                                       n_results=1,
+                                       include=["documents"],
+                                       where={"id": summaries.count() - 1})
+        return last_summary['documents'][0][0]
+    except:
+        return ""
+
+
+def put_memory(memories):
+    memory_db = memory_client.get_or_create_collection(name=memory_collection,
+                                                       embedding_function=embeddings.embed_documents,
+                                                       metadata={"hnsw:space": "ip"})
+    current_memory_count = memory_db.count()
+    metadata = []
+    ids = []
+    for i in range(len(memories)):
+        metadata.append({'id': current_memory_count + i})
+        ids.append(str(current_memory_count + i))
+    memory_db.add(documents=memories,
+                  metadatas=metadata,
+                  ids=ids)
+    memory_client.persist()
     return
 
 
 def process_query(query):
     num_records = 3
     try:
-        collection = chroma_client.get_collection(name=collection_name,
-                                                  embedding_function=embeddings.embed_documents)
+        collection = document_client.get_collection(name=collection_name,
+                                                    embedding_function=embeddings.embed_documents)
         query_result = collection.query(query_texts=query,
                                         n_results=num_records,
                                         include=["metadatas",
@@ -82,10 +140,10 @@ def process_query(query):
 def get_top_page(query):
     try:
         book_name, search_query = query.strip().split(":")
-        collection = chroma_client.get_collection(name=collection_name,
-                                                  embedding_function=embeddings.embed_documents)
-        book_collection = chroma_client.get_collection(name=book_collection_name,
-                                                       embedding_function=embeddings.embed_documents)
+        collection = document_client.get_collection(name=collection_name,
+                                                    embedding_function=embeddings.embed_documents)
+        book_collection = document_client.get_collection(name=book_collection_name,
+                                                         embedding_function=embeddings.embed_documents)
 
         book_search = book_collection.query(query_texts=book_name, n_results=1,
                                             include=["documents"])
@@ -121,10 +179,10 @@ def get_top_page(query):
 def get_page_of_book(query):
     try:
         book_name, search_query = query.strip().split(":")
-        collection = chroma_client.get_collection(name=collection_name,
-                                                  embedding_function=embeddings.embed_documents)
-        book_collection = chroma_client.get_collection(name=book_collection_name,
-                                                       embedding_function=embeddings.embed_documents)
+        collection = document_client.get_collection(name=collection_name,
+                                                    embedding_function=embeddings.embed_documents)
+        book_collection = document_client.get_collection(name=book_collection_name,
+                                                         embedding_function=embeddings.embed_documents)
 
         book_search = book_collection.query(query_texts=book_name, n_results=1,
                                             include=["documents", "metadatas", "distances"])
@@ -156,23 +214,56 @@ def get_page_of_book(query):
         return "Unknown Error!"
 
 
+def search_memories(query):
+    try:
+        collection = memory_client.get_collection(name=memory_collection,
+                                                  embedding_function=embeddings.embed_documents)
+
+        memory_matches = collection.query(query_texts=query, n_results=11,
+                                          include=["documents"])
+        potential_memories = '\n\n'.join(memory_matches["documents"][0])
+
+        return potential_memories
+    except ValueError as ve:
+        print(ve)
+        return "No data found!"
+
+
+def book_finder(query):
+    try:
+        collection = document_client.get_collection(name=collection_name,
+                                                    embedding_function=embeddings.embed_documents)
+
+        query_result = collection.query(query_texts=query,
+                                        n_results=1,
+                                        include=["metadatas",
+                                                 "documents",
+                                                 "distances"]
+                                        )
+        return query_result["metadatas"][0][0]["book"]
+    except ValueError as ve:
+        print(ve)
+        return "No data found!"
+
+    except IndexError as e:
+        print(e)
+        return "Page or Book not found in Database!"
+    except Exception as e:
+        print(e)
+        return "Unknown Error!"
+
+
 def summarize_book(book_name, llm=None):
     if llm:
-        book_collection = chroma_client.get_collection(name=book_collection_name,
-                                                       embedding_function=embeddings.embed_documents)
+        book_collection = document_client.get_collection(name=book_collection_name,
+                                                         embedding_function=embeddings.embed_documents)
 
         book_search = book_collection.query(query_texts=book_name, n_results=1,
                                             include=["documents", "metadatas", "distances"])
         potential_book = book_search["documents"][0][0]
         total_pages = book_search["metadatas"][0][0]['Total_pages']
-        # tic = time.time()
-        # all_book_pages = []
-        # for i in range(total_pages):
-        #     all_book_pages.append(get_page_of_book(f"{potential_book}: {i}"))
-        # toc = time.time() - tic
-
-        collection = chroma_client.get_collection(name=collection_name,
-                                                  embedding_function=embeddings.embed_documents)
+        collection = document_client.get_collection(name=collection_name,
+                                                    embedding_function=embeddings.embed_documents)
         all_pages = collection.query(query_texts="", n_results=total_pages,
                                      include=["documents", "embeddings", "metadatas"],
                                      where={"book": potential_book})
@@ -210,8 +301,9 @@ def summarize_book(book_name, llm=None):
             summaries.append(summary.strip())
         summaries = "\n".join(summaries)
         combine_prompt = """
-        You will be given a series of summaries from a book. The summaries will be enclosed in triple backticks (```)
-        Your goal is to give a verbose summary of what happened in the story.
+        You will be given a series of summaries from a book. The summaries will be enclosed in triple backticks (```) \
+        Your goal is to give a verbose summary of what happened in the story. The summary should also include names, \
+        dates, facts, etc. if they are available. \
         The reader should be able to grasp what happened in the book.
 
         ```{text}```

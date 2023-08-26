@@ -11,3 +11,7 @@ docs_cache/*
 *.h
 AI_assistant_venv/*
 .ssh/*
+.ssh/*
+conversation_cache/*
+memory_cache/*
+

@@ -5,7 +5,7 @@ from langchain.agents import Tool, AgentExecutor
 from langchain.chains.conversation.memory import ConversationSummaryMemory, ConversationBufferMemory
 from langchain.agents import initialize_agent, AgentType, ZeroShotAgent
 from dotenv import load_dotenv, find_dotenv
-from chroma_handler import process_query, get_top_page, summarize_book
+from chroma_handler import *
 from langchain.chains.summarize import load_summarize_chain
 from functools import partial
 
@@ -30,10 +30,37 @@ context: "{query_context}"
 Human: {question}
 
 AJ4X:"""
+Summary_template = """
+You are AJ4X. Progressively summarize the lines of conversation provided, \
+adding onto the previous summary returning a new summary. \
+The new summary should include specific details which \
+the reader can get a good idea of the conversation so far. \
+The new summary should be at most 3000 words. \
+EXAMPLE
+Current summary:
 
-ajax_no_memory = PromptTemplate(template=template, input_variables=['question', 'query_context'])
+New conversation:
+Human: Why do you think artificial intelligence is a force for good?
+AJ4X: Because artificial intelligence will help humans grow their potential.
 
-ajax_chain = LLMChain(llm=llm_openai, prompt=ajax_no_memory, verbose=True)
+New summary:
+The human asks about why artificial intelligence is good. I think artificial intelligence is good because \
+it will help humans grow their potential.
+END OF EXAMPLE
+
+Current summary:
+{summary}
+
+New conversation:
+{new_lines}
+
+New summary:
+"""
+
+
+summary_prompt = PromptTemplate(template=Summary_template, input_variables=['summary', 'new_lines'])
+
+summary_chain = LLMChain(llm=llm_openai, prompt=summary_prompt, verbose=True)
 
 
 # while True:
@@ -61,7 +88,7 @@ def chatbot(query):
 # docs = ###Get all the documents of that book
 
 # summary_llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k")
-summary_chain = load_summarize_chain(llm_openai, chain_type="stuff")
+# summary_chain = load_summarize_chain(llm_openai, chain_type="stuff")
 
 top_page_tool = Tool(
     name='Top Page Result',
@@ -69,7 +96,7 @@ top_page_tool = Tool(
     description="The database contains pages of the books in questions. "
                 "Use this function to retrieve any particular page of the books stored in the database."
                 "Your search query must include a book name and a search term. The book name can be a "
-                "partial match. Use this format to query - book name: a search term"
+                "partial match. The query format should strictly follow - book name: a search term"
 )
 
 summary_tool = Tool(
@@ -79,13 +106,22 @@ summary_tool = Tool(
                 "should be a book name."
 )
 
-# summary_tool = Tool(
-#     name='Summarizer',
-#     func=summary_chain.run,
-#     description="Summarize the book mentioned in a paragraph. The reader should be able to grasp what happened in the book."
-# )
+book_finder_tool = Tool(
+    name='Book Finder',
+    func=book_finder,
+    description="This tool can be used to find the name of a book for a given search query. "
+                "Use targeted search keywords"
+)
 
-all_tools = [top_page_tool, summary_tool]
+thinker_tool = Tool(
+    name='Remembering',
+    func=search_memories,
+    description="This tool can be used to remember an older thought. This tool "
+                "must be used before every action you take and remember if you've already "
+                "had a thought for the given question. Use targeted search keywords"
+)
+
+all_tools = [thinker_tool, top_page_tool, summary_tool, book_finder_tool]
 # memory = ConversationSummaryMemory(llm=llm_openai, input_key="question")
 
 # simple_agent = initialize_agent(
@@ -96,10 +132,12 @@ all_tools = [top_page_tool, summary_tool]
 #     # memory=memory
 # )
 
-prefix = """Have a conversation with a human, \
+prefix = """You are a helpful AI assistant named 'AJ4X' who speaks like \
+a British medical doctor. Have a conversation with a human, \
             answering the following questions as best you can. 
             You have access to the following tools:"""
-suffix = """Begin!"
+suffix = """You must use the 'Remembering' tool before you use another tool to check if you've already \
+had a thought about this. You must use this tool before the 'Book Summary' tool. Begin!"
 
 {chat_history}
 Question: {input}
@@ -114,11 +152,11 @@ prompt = ZeroShotAgent.create_prompt(
 
 # print(prompt)
 
-memory = ConversationBufferMemory(memory_key="chat_history")
+# memory = ConversationBufferMemory(memory_key="chat_history")
 llm_chain = LLMChain(llm=llm_openai, prompt=prompt)
 agent = ZeroShotAgent(llm_chain=llm_chain, tools=all_tools, verbose=True)
 simple_agent = AgentExecutor.from_agent_and_tools(
-    agent=agent, tools=all_tools, verbose=True, memory=memory
+    agent=agent, tools=all_tools, verbose=True, return_intermediate_steps=True
 )
 
 
@@ -126,4 +164,19 @@ simple_agent = AgentExecutor.from_agent_and_tools(
 
 
 def conv_agent(query):
-    return simple_agent.run(input=query)
+    chat_history = get_last_chat_summary()
+    answer = simple_agent({
+        "input": query,
+        "chat_history": chat_history
+    })
+    intermediate_steps = answer['intermediate_steps']
+    step_reduction = []
+    for step in intermediate_steps:
+        agentTool = step[0]
+        toolOutput = step[1]
+        step_reduction.append(f"`{agentTool.tool}` for `{agentTool.tool_input}`: {toolOutput}")
+    current_conversation = f"Human: {query}\nAJ4X: {answer['output']}"
+    conversation_summary = summary_chain.run(summary=chat_history, new_lines=current_conversation)
+    put_conversation(current_conversation, conversation_summary)
+    put_memory(step_reduction)
+    return answer['output']

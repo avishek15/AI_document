@@ -9,7 +9,7 @@ from config import upload_dir
 
 def sidebar():
     sidebar = st.sidebar
-    sidebar.title("This is the sidebar")
+    sidebar.title("File Uploader")
     with sidebar.form(key='file-handler', clear_on_submit=True):
         uploaded_files = st.file_uploader(label="PDF Files",
                                           type="pdf",
@@ -33,7 +33,7 @@ def sidebar():
 
 def main():
     sidebar()
-    st.title("This is the main content")
+    st.title("AJ4X - You friendly AI bot")
 
     # handle chats till now
     if "messages" not in st.session_state:
@@ -50,7 +50,7 @@ def main():
                                               "message": query})
         with st.chat_message("bot"):
             # bot_response = f"Echo: {query}"
-            #bot_response = chatbot_response(query)
+            # bot_response = chatbot_response(query)
             bot_response = conv_agent(query)
             st.markdown(bot_response)
             st.session_state.messages.append({"role": "bot",

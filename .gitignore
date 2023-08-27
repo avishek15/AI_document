@@ -13,4 +13,3 @@ AI_assistant_venv/*
 .ssh/*
 conversation_cache/*
 memory_cache/*
-

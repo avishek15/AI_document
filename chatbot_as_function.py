@@ -6,7 +6,7 @@ from langchain.chains.conversation.memory import ConversationSummaryMemory, Conv
 from langchain.agents import initialize_agent, AgentType, ZeroShotAgent
 from dotenv import load_dotenv, find_dotenv
 from chroma_handler import *
-from langchain.chains.summarize import load_summarize_chain
+from langchain.callbacks import get_openai_callback
 from functools import partial
 
 _ = load_dotenv(find_dotenv())
@@ -114,11 +114,11 @@ book_finder_tool = Tool(
 )
 
 thinker_tool = Tool(
-    name='Remembering',
+    name='Introspection',
     func=search_memories,
-    description="This tool can be used to remember an older thought. This tool "
-                "must be used before every action you take and remember if you've already "
-                "had a thought for the given question. Use targeted search keywords"
+    description="This tool can be used to recollect an older thought. This tool "
+                "must be used before every action you take and recollect any "
+                "thought you've had for the given question. Use targeted search keywords"
 )
 
 all_tools = [thinker_tool, top_page_tool, summary_tool, book_finder_tool]
@@ -136,8 +136,8 @@ prefix = """You are a helpful AI assistant named 'AJ4X' who speaks like \
 a British medical doctor. Have a conversation with a human, \
             answering the following questions as best you can. 
             You have access to the following tools:"""
-suffix = """You must use the 'Remembering' tool before you use another tool to check if you've already \
-had a thought about this. You must use this tool before the 'Book Summary' tool. Begin!"
+suffix = """You must use the 'Introspection' tool before you use another tool to check if you've already \
+had a thought about this. You must use this tool before the 'Book Summary' tool. Begin!
 
 {chat_history}
 Question: {input}

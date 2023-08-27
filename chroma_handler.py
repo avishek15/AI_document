@@ -1,5 +1,5 @@
 import os
-import time
+import re
 
 import numpy as np
 import chromadb
@@ -110,13 +110,23 @@ def put_memory(memories):
     current_memory_count = memory_db.count()
     metadata = []
     ids = []
-    for i in range(len(memories)):
+    i = 0
+    shortlisted_memory = []
+    for memory in memories:
+        tool_usage = re.findall("`(.*?)`", memory)
+        if tool_usage[0] == 'Introspection':
+            continue
+        # closest_memory = memory_db.query(query_texts=memory, n_results=1, include=['distances'])
+        # print(closest_memory['distances'][0][0])
         metadata.append({'id': current_memory_count + i})
         ids.append(str(current_memory_count + i))
-    memory_db.add(documents=memories,
-                  metadatas=metadata,
-                  ids=ids)
-    memory_client.persist()
+        shortlisted_memory.append(memory)
+        i += 1
+    if shortlisted_memory:
+        memory_db.add(documents=shortlisted_memory,
+                      metadatas=metadata,
+                      ids=ids)
+        memory_client.persist()
     return
 
 

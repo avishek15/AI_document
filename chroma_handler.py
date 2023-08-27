@@ -219,7 +219,7 @@ def search_memories(query):
         collection = memory_client.get_collection(name=memory_collection,
                                                   embedding_function=embeddings.embed_documents)
 
-        memory_matches = collection.query(query_texts=query, n_results=11,
+        memory_matches = collection.query(query_texts=query, n_results=3,
                                           include=["documents"])
         potential_memories = '\n\n'.join(memory_matches["documents"][0])
 
@@ -285,7 +285,8 @@ def summarize_book(book_name, llm=None):
         map_prompt = """
         You will be given a single page of a book. This section will be enclosed in triple backticks (```)
         Your goal is to give a summary of this section so that a reader will have a full understanding of what happened.
-        Your response should be at most three paragraphs and fully encompass what was said in the page.
+        Your response should be as brief as possible and fully encompass what was said in the page. Names, dates, facts
+        should not be lost while summarizing.
 
         ```{text}```
         FULL SUMMARY:
@@ -302,9 +303,9 @@ def summarize_book(book_name, llm=None):
         summaries = "\n".join(summaries)
         combine_prompt = """
         You will be given a series of summaries from a book. The summaries will be enclosed in triple backticks (```) \
-        Your goal is to give a verbose summary of what happened in the story. The summary should also include names, \
-        dates, facts, etc. if they are available. \
-        The reader should be able to grasp what happened in the book.
+        Your goal is to give a brief verbose summary of what happened in the story.  \
+        The summary should also include names, dates, facts, etc. if they are available. \
+        The reader should be able to fully grasp what happened in the book.
 
         ```{text}```
         VERBOSE SUMMARY:

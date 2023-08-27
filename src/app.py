@@ -3,7 +3,7 @@ import shutil
 import os
 
 from chroma_handler import process_pdf
-from chatbot2 import chatbot_response
+from chatbot_as_function import conv_agent
 from config import upload_dir
 
 
@@ -50,7 +50,8 @@ def main():
                                               "message": query})
         with st.chat_message("bot"):
             # bot_response = f"Echo: {query}"
-            bot_response = chatbot_response(query)
+            #bot_response = chatbot_response(query)
+            bot_response = conv_agent(query)
             st.markdown(bot_response)
             st.session_state.messages.append({"role": "bot",
                                               "message": bot_response})

@@ -11,8 +11,6 @@ RUN apt-get update && apt-get install -y \
 
 # RUN git clone https://github.com/streamlit/streamlit-example.git .
 ADD src/ src
-ADD docs_cache/ docs_cache
-ADD model_cache/ model_cache 
 COPY requirements.txt .
 COPY .env .
 

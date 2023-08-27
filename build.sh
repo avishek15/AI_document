@@ -1,0 +1,1 @@
+docker build -t AI_document:v0.1 .

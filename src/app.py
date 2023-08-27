@@ -17,14 +17,17 @@ def sidebar():
                                           key="pdf_upload")
         submitted = st.form_submit_button("Upload")
         if uploaded_files and submitted:
-            if os.path.exists(upload_dir):
-                shutil.rmtree(upload_dir)
-            os.makedirs(upload_dir)
-            for fl in uploaded_files:
-                with open(os.sep.join([upload_dir, fl.name]), "wb") as f:
-                    f.write(fl.getbuffer())
-            for f in uploaded_files:
-                process_pdf(os.sep.join([upload_dir, f.name]))
+            # if os.path.exists(upload_dir):
+            #     shutil.rmtree(upload_dir)
+            # No need to remove path, if path doesn't exists, just create one
+            with st.spinner("Please wait for the process to finish..."):
+                if not os.path.exists(upload_dir):
+                    os.makedirs(upload_dir)
+                for fl in uploaded_files:
+                    with open(os.sep.join([upload_dir, fl.name]), "wb") as f:
+                        f.write(fl.getbuffer())
+                for f in uploaded_files:
+                    process_pdf(os.sep.join([upload_dir, f.name]))
             st.write("Upload successful!")
 
 

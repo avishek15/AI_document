@@ -31,10 +31,7 @@ conversation_client = chromadb.Client(Settings(
 def process_pdf(pdf_path):
     metadata = pdf_path.split(os.sep)[-1][:-4]
     doc = pdfium.PdfDocument(pdf_path)
-    full_text = ""
-    for page_num in range(len(doc)):
-        full_text += doc.get_page(page_num).get_textpage().get_text_range()
-    doc.close()
+
     collection = document_client.get_or_create_collection(name=collection_name,
                                                           embedding_function=embeddings.embed_documents,
                                                           metadata={"hnsw:space": "ip"})
@@ -45,24 +42,32 @@ def process_pdf(pdf_path):
     doc_collection = []
     metadata_collection = []
     ids_collection = []
-    i = idx = 0
-    for idx, i in enumerate(range(0, len(full_text) - context_len, context_len - overlap)):
-        doc_collection.append(' '.join(full_text[i: i + context_len].split(' ')[1:-1]))
-        metadata_collection.append({'book': metadata, 'chunk': idx})
-        ids_collection.append(str(id_offset + idx))
-    i = i + (context_len - overlap)
-    doc_collection.append(full_text[i:])
-    metadata_collection.append({'book': metadata, 'chunk': idx + 1})
-    ids_collection.append(str(id_offset + idx + 1))
-    random_ids_to_match = np.random.default_rng().choice(len(doc_collection), size=min(10, len(doc_collection)),
+    idx = 0
+    for page_num in range(len(doc)):
+        ctx = ""
+        if idx != 0:
+            ctx += doc.get_page(page_num - 1).get_textpage().get_text_range()[-overlap:]
+        ctx += doc.get_page(page_num).get_textpage().get_text_range()
+
+        for i in range(0, len(ctx), context_len - overlap):
+            # print(i, ctx[i: i + context_len])
+            doc_collection.append(ctx[i: i + context_len])
+            metadata_collection.append({'book': metadata, 'page': idx})
+            ids_collection.append(str(id_offset + idx))
+            idx += 1
+
+    random_ids_to_match = np.random.default_rng().choice(len(doc_collection),
+                                                         size=min(10, len(doc_collection)),
                                                          replace=False)
     if id_offset:
         matches = [collection.query(query_texts=doc_collection[random_id], n_results=1)['distances'][0] for random_id in
                    random_ids_to_match]
         matches = [match[0] for match in matches if len(match)]
-        match_distance = np.sum(matches)
-        if not match_distance:
+        # print(matches)
+        match_distance = np.around(np.sum(matches), 3)
+        if not match_distance:      # Needs improvement to check closeness to 0
             return
+        print(match_distance)
     collection.add(documents=doc_collection,
                    metadatas=metadata_collection,
                    ids=ids_collection)
@@ -70,6 +75,7 @@ def process_pdf(pdf_path):
                         metadatas=[{'Total_pages': len(doc_collection)}],
                         ids=[str(book_collection.count())])
     document_client.persist()
+    doc.close()
     return
 
 
@@ -127,6 +133,7 @@ def put_memory(memories):
                       metadatas=metadata,
                       ids=ids)
         memory_client.persist()
+    
     return
 
 

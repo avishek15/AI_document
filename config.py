@@ -1,6 +1,13 @@
 model_cache = "./model_cache"
 docs_cache = "./docs_cache"
 upload_dir = "./upload_dir"
+memory_cache = "./memory_cache"
+conversation_cache = "./conversation_cache"
 collection_name = "docs"
+book_collection_name = "book_names"
+conversation_collection = "conversations"
+summarized_history_collection = "histories"
+memory_collection = "Memories"
 context_len = 2048
 overlap = 128
+clusters = 11

@@ -8,12 +8,16 @@ I am utilising Langchain, SentenceTransformer and OpenAI API.
 Done:
 - [x] Basic Chatbot without memory
 - [x] Document Uploading interface
+- [x] Handled the case for only pdf documents to be uploaded.
 - [x] Document storage into Chroma DB
 - [x] Connect bot with VectorDB
+- [x] Context embeddings should return good quality matches
+- [x] Force the bot to answer from context
 
 To Do:
-- [ ] Context embeddings should return good quality matches
-- [ ] Force the bot to answer from context
+- [ ] Unified Interface
+- [ ] Test for the case for the question for which the book has no information 
+- [ ] Handling no context (If no file is uploaded)
 - [ ] Chatbot Memory
 - [ ] Turn into WebApp (Flask maybe?)
 

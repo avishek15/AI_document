@@ -1,1 +1,1 @@
-docker build -t AI_document:v0.1 .
+docker build -t ai_document:v0.1 .

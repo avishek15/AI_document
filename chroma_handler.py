@@ -26,6 +26,7 @@ def process_pdf(pdf_path):
     doc_collection = []
     metadata_collection = []
     ids_collection = []
+    print("length", len(full_text))
     for idx, i in enumerate(range(0, len(full_text) - context_len, context_len - overlap)):
         doc_collection.append(' '.join(full_text[i: i+context_len].split(' ')[1:-1]))
         metadata_collection.append({'book': metadata, 'chunk': idx})
@@ -34,7 +35,7 @@ def process_pdf(pdf_path):
     doc_collection.append(full_text[i:])
     metadata_collection.append({'book': metadata, 'chunk': idx + 1})
     ids_collection.append(str(id_offset + idx + 1))
-    random_ids_to_match = np.random.default_rng().choice(len(doc_collection), size=10, replace=False)
+    random_ids_to_match = np.random.default_rng().choice(len(doc_collection), size=min(10, len(doc_collection)), replace=False)
     if id_offset:
         matches = [collection.query(query_texts=doc_collection[random_id], n_results=1)['distances'][0] for random_id in
                    random_ids_to_match]

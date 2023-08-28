@@ -10,3 +10,4 @@ docs_cache/*
 *.pyd
 *.h
 AI_assistant_venv/*
+.ssh/*

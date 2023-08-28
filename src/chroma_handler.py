@@ -165,13 +165,7 @@ def get_top_page(query):
         book_search = book_collection.query(query_texts=book_name, n_results=1,
                                             include=["documents"])
         potential_book = book_search["documents"][0][0]
-        # if potential_book empty => handle
-        # where_clause = {
-        #     "$and": [
-        #         {"book": {"$eq": potential_book}},
-        #         {"chunk": {"$eq": int(search_query)}}
-        #     ]
-        # }
+
         where_clause = {"book": potential_book}
         query_result = collection.query(query_texts=search_query,
                                         n_results=1,
@@ -208,7 +202,7 @@ def get_page_of_book(query):
         where_clause = {
             "$and": [
                 {"book": {"$eq": potential_book}},
-                {"chunk": {"$eq": int(search_query)}}
+                {"page": {"$eq": int(search_query)}}
             ]
         }
         query_result = collection.query(query_texts=search_query,
@@ -285,7 +279,7 @@ def summarize_book(book_name, llm=None):
                                      include=["documents", "embeddings", "metadatas"],
                                      where={"book": potential_book})
         all_docs = [page for page in all_pages['documents'][0]]
-        all_meta = [meta['chunk'] for meta in all_pages['metadatas'][0]]
+        all_meta = [meta['page'] for meta in all_pages['metadatas'][0]]
         all_embeddings = np.asarray(all_pages['embeddings'][0])
         kmeans = KMeans(n_clusters=clusters, random_state=451).fit(all_embeddings)
         # page_wise_classes = kmeans.labels_

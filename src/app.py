@@ -49,11 +49,10 @@ def main():
             st.session_state.messages.append({"role": "user",
                                               "message": query})
         with st.chat_message("bot"):
-            # bot_response = f"Echo: {query}"
-            # bot_response = chatbot_response(query)
-            bot_response = conv_agent(query)
+            with st.spinner("Thinking..."):
+                bot_response = conv_agent(query)
             st.markdown(bot_response)
-            st.session_state.messages.append({"role": "bot",
+            st.session_state.messages.append({"role": "assistant",
                                               "message": bot_response})
 
 

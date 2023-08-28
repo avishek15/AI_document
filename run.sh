@@ -4,4 +4,4 @@ docker run -p 80:8501 \
   -v ./memory_cache:/app/memory_cache \
   -v ./model_cache:/app/model_cache \
   -v ./upload_dir:/app/upload_dir \
-  --rm -it AI_document:v0.1 /bin/bash
+  --rm -it ai_document:v0.1 /bin/bash

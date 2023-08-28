@@ -48,7 +48,7 @@ def main():
             st.markdown(query)
             st.session_state.messages.append({"role": "user",
                                               "message": query})
-        with st.chat_message("bot"):
+        with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
                 bot_response = conv_agent(query)
             st.markdown(bot_response)
